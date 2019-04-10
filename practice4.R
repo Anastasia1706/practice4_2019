@@ -78,39 +78,29 @@ spplot(Regions1, 'month_pay',
 
 
 #2 часть постройка карты с помощью ggplot()======
-rm(Regions1)
-Regions <- readOGR("./data/36_RUS_shp/gadm36_RUS_1.shp")
-# (названия регионов из столбца NAME_1)
-Regions@data$id <- Regions@data$NAME_1
+ rm(Regions1)
+
+Regions <- readOGR("./data/36_RUS_shp/gadm36_RUS_2.shp")
+Regions@data$id <- Regions@data$NAME_2
+
 # преобразовываем SpatialPolygonsDataFrame в data.frame
 Regions.points <- tidy(Regions, region = 'id')
+
 # добавляем к координатам сведения о регионах
 Regions.df <- merge(Regions.points, Regions@data, by = 'id')
 
-# добавляем к координатам значения показателя для заливки
-# (численность населения из фрейма stat.Regions)
-reg$id <- reg$reg
-Regions.df <- merge(Regions.df,
-                   reg[, c('id',
-                                    'munizp_obr')],
-                   by = 'id')
-names(Regions.df)
+Regions_1.1$HASC_2 <- as.character(Regions_1.1$HASC_2)
 
-# координаты центров полигонов (для подписей регионов)
-centroids.df <- as.data.frame(coordinates(Regions))
-# названия регионов (идут в том же порядке, в каком
-# считались центроиды
-centroids.df$id <- Regions@data$id
-# заменяем имена переменных, созданные по умолчанию
-colnames(centroids.df) <- c('long', 'lat', 'id')
-
-
+Regions_1 <- Regions.df[grepl('^RU[.]KK', Regions.df$HASC_2),]
+popul <- read.csv('popul.csv',stringsAsFactors = F, sep = ';')
+Regions_1.1 <- merge(popul, Regions_1, by.x='name_of_reg', by.y='NAME_2')
 # создаём график
+
 gp <- ggplot() +
-  geom_polygon(data = Regions.df,
+  geom_polygon(data = Regions_1.1,
                aes(long, lat, group = group,
-                   fill = munizp_obr)) +
-  geom_path(data = Regions.df,
+                   fill = population)) +
+  geom_path(data = Regions_1.1,
             aes(long, lat, group = group),
             color = 'coral4') +
   coord_map(projection = 'mercator') +
@@ -118,6 +108,9 @@ gp <- ggplot() +
                        direction = 1,
                        breaks = pretty_breaks(n = 5)) +
   labs(x = 'Долгота', y = 'Широта',
-       title = "Количество муниципальнх образований") 
+       title = "Население") 
+
 # выводим график
+
 gp 
+
